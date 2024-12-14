@@ -6,3 +6,5 @@ __pycache__
 
 __pycache__/*
 pycache
+
+spin_nn/__pycache__

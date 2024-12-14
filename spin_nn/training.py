@@ -2,7 +2,7 @@ import numpy as np
 
 def train_model(model, X_train, y_train, epochs=10, learning_rate=0.01):
     """
-    Обучение модели MSK с TAP-поправками.
+    Обучение модели MSK.
     Args:
         model (MSKModel): Экземпляр модели.
         X_train (np.ndarray): Обучающие данные.
@@ -19,10 +19,10 @@ def train_model(model, X_train, y_train, epochs=10, learning_rate=0.01):
     for epoch in range(epochs):
         epoch_loss = 0
         for x, y in zip(X_train, one_hot_y):
-            x = np.array(x, dtype=np.float32)  # Убедимся, что x — float32
+            x = np.array(x, dtype=np.float32)  # Преобразуем в float32
             y = np.array(y, dtype=np.float32)
 
-            # Forward: получаем состояния выходного слоя
+            # Прямой проход
             output = model.forward(x)
 
             # Потеря (кросс-энтропия)
@@ -30,18 +30,27 @@ def train_model(model, X_train, y_train, epochs=10, learning_rate=0.01):
             epoch_loss += loss
 
             # Backpropagation: вычисляем градиенты
-            gradients = [output - y]  # Градиент на выходном слое
-            for i in range(len(model.weights) - 1, -1, -1):  # Проходим слои в обратном порядке
+            gradients = [output - y]  # Ошибка на выходном слое
+            states = [x]  # Начальное состояние
+
+            # Прямой проход для сохранения состояний всех слоёв
+            for weight in model.weights:
+                local_field = np.dot(states[-1], weight)
+                next_state = np.tanh(model.beta * local_field)
+                states.append(next_state)
+
+            # Распространение ошибки
+            for i in range(len(model.weights) - 1, -1, -1):
                 if i > 0:
-                    backprop_error = gradients[-1].dot(model.weights[i].T) * (1 - model.weights[i - 1]**2)
+                    backprop_error = gradients[-1].dot(model.weights[i].T) * (1 - states[i]**2)
                 else:
-                    backprop_error = gradients[-1].dot(model.weights[i].T) * (1 - x**2)
+                    backprop_error = gradients[-1].dot(model.weights[i].T) * (1 - states[0]**2)
                 gradients.append(backprop_error)
             gradients.reverse()
 
-            # Обновляем веса
+            # Обновление весов
             for i in range(len(model.weights)):
-                dw = np.outer(x if i == 0 else model.weights[i-1], gradients[i])
+                dw = np.outer(states[i], gradients[i+1])  # Матрица градиентов
                 model.weights[i] -= learning_rate * dw
 
         log_losses.append(epoch_loss / len(X_train))

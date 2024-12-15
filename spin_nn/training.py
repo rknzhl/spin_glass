@@ -1,98 +1,68 @@
-from spin_nn.equations import total_energy_parallel
-from spin_nn.model import MSKModel
-from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from tqdm import tqdm
+from spin_nn.equations import l2_hinge_loss
+from concurrent.futures import ThreadPoolExecutor
 
-def evaluate_model_parallel(model, X_test, y_test):
-    """
-    Параллельная оценка точности модели на тестовой выборке.
-    """
-    def compute_accuracy(x, y):
-        output = model.forward(x)
-        predicted_class = np.argmax(output)
-        return predicted_class == y
+def evaluate(model, X_test, y_test):
+    correct = 0
+    for x, y in zip(X_test, y_test):
+        output, _, _ = model.forward(x)
+        if np.argmax(output) == np.argmax(y):
+            correct += 1
+    return 100.0 * correct / len(X_test)
 
-    with ThreadPoolExecutor() as executor:
-        results = list(executor.map(compute_accuracy, X_test, y_test))
+def train_on_batch(model, X_batch, y_batch):
+    # Локальное накопление градиентов
+    batch_gradients = [np.zeros_like(w) for w in model.weights]
+    batch_loss = 0.0
+    for x, y in zip(X_batch, y_batch):
+        output, activations, pre_activations = model.forward(x)
+        loss = l2_hinge_loss(output[np.newaxis, :], y[np.newaxis, :])
+        batch_loss += loss
+        gradients = model.backward(output, y, activations, pre_activations)
+        for i in range(len(batch_gradients)):
+            batch_gradients[i] += gradients[i]
 
-    accuracy = sum(results) / len(results)
-    return accuracy
+    # Усреднение
+    for i in range(len(batch_gradients)):
+        batch_gradients[i] /= len(X_batch)
+
+    return (batch_loss / len(X_batch), batch_gradients)
 
 
-def generate_new_weights_parallel(model):
-    """
-    Генерация новых весов с помощью многопоточности.
-    """
+def train(model, X_train, y_train, X_test, y_test, epochs=10, batch_size=64, n_jobs=4):
+    n_samples = X_train.shape[0]
 
-    def initialize_weights(model):
-        weights = [
-            np.random.normal(0, 1 / np.sqrt(model.layer_sizes[i]),
-                             size=(model.layer_sizes[i], model.layer_sizes[i+1]))
-            for i in range(model.n_layers - 1)
+    for epoch in range(epochs):
+        # Перемешиваем данные
+        indices = np.random.permutation(n_samples)
+        X_train_shuffled, y_train_shuffled = X_train[indices], y_train[indices]
+
+        # Разбиваем на батчи
+        batches = [
+            (X_train_shuffled[i:i+batch_size], y_train_shuffled[i:i+batch_size])
+            for i in range(0, n_samples, batch_size)
         ]
-        return weights
 
-    def perturb_weight(model):
-        delta_weight = initialize_weights(model)
-        return model.weight + 0.5 * delta_weight
+        epoch_loss = 0.0
+        # Параллельная обработка батчей
+        with ThreadPoolExecutor(max_workers=n_jobs) as executor:
+            results = list(tqdm(executor.map(lambda b: train_on_batch(model, b[0], b[1]), batches), 
+                                 total=len(batches), desc=f"Epoch {epoch+1}/{epochs}", unit="batch"))
+        
+        # Суммируем потери и градиенты
+        total_gradients = [np.zeros_like(w) for w in model.weights]
+        for (loss_val, grads) in results:
+            epoch_loss += loss_val
+            for i in range(len(total_gradients)):
+                total_gradients[i] += grads[i]
 
-    with ThreadPoolExecutor() as executor:
-        new_weights = list(executor.map(perturb_weight, model))
-    return new_weights
+        # Усредняем градиенты по количеству батчей
+        for i in range(len(total_gradients)):
+            total_gradients[i] /= len(batches)
 
+        # Обновляем веса
+        model.update_weights(total_gradients)
 
-def annealing_parallel(
-    model, X_train, y_train, X_test, y_test,
-    beta=1.0, target_accuracy=0.95, max_iterations=10000
-):
-
-
-    current_energy = total_energy_parallel(model, X_train, y_train, beta)
-    best_model = model
-    best_accuracy = 0
-
-    # Создаём прогресс-бар
-    with tqdm(total=max_iterations, desc="Annealing Progress", unit="iter") as pbar:
-        for iteration in range(max_iterations):
-            # Параллельное изменение весов
-            new_weights = generate_new_weights_parallel(model)
-
-            # Создаём временную модель с новыми весами
-            temp_model = MSKModel(model.layer_sizes, beta)
-            temp_model.weights = new_weights
-
-            # Параллельная оценка энергии
-            new_energy = total_energy_parallel(temp_model, X_train, y_train, beta)
-
-            # Изменение энергии
-            delta_energy = new_energy - current_energy
-
-            # Принятие нового состояния
-            if delta_energy < 0 or np.random.rand() < np.exp(-delta_energy / T):
-                model.weights = new_weights
-                current_energy = new_energy
-
-
-            # Параллельная проверка точности на тестовой выборке
-            accuracy = evaluate_model_parallel(model, X_test, y_test)
-
-            # Сохранение лучшей модели
-            if accuracy > best_accuracy:
-                best_accuracy = accuracy
-                best_model = model
-                pbar.write(f"New best accuracy {best_accuracy * 100:.2f}% ")
-
-            # Обновляем прогресс-бар
-            pbar.set_postfix(
-                Energy=f"{current_energy:.4f}",
-                Accuracy=f"{accuracy * 100:.2f}%"
-            )
-            pbar.update(1)
-
-            # Завершение при достижении целевой точности
-            if accuracy >= target_accuracy:
-                pbar.write(f"Target accuracy {target_accuracy * 100:.2f}% reached!")
-                break
-
-    return best_model
+        test_accuracy = evaluate(model, X_test, y_test)
+        print(f"Epoch {epoch+1}/{epochs}, Avg Loss: {epoch_loss/len(batches):.4f}, Test Accuracy: {test_accuracy:.2f}%")

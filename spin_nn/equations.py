@@ -1,32 +1,25 @@
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 
-def tap_free_energy(weights, spins, beta):
-    H = 0
-    current_spins = spins
-
-    for weight in weights:
-        local_field = np.dot(current_spins, weight)
-        H -= 0.5 * np.sum(local_field**2)
-        current_spins = np.tanh(beta * local_field)
-
-    onsager_term = -0.5 * beta * np.sum(1 - spins**2)
-    return H + onsager_term
-
-
-def total_energy_parallel(model, X, y, beta):
+def l2_hinge_loss(predictions, targets):
     """
-    Общая энергия системы: TAP + ошибка классификации.
-    Параллельно.
-    """
-    energy = 0;
-    def compute_energy(x, label):
-        logits = model.forward(x)
-        tap_energy = tap_free_energy(model.weights, x, beta)
-        output = np.clip(logits, 1e-8, 1 - 1e-8)
-        classification_loss = -np.log(output[label])
-        return tap_energy + classification_loss
+    L2-многоклассовый hinge loss: 
+    loss = sum_{j != y_true}(max(0, 1 - pred[y_true] + pred[j]))^2
 
-    with ThreadPoolExecutor() as executor:
-        energies = list(executor.map(compute_energy, X, y))
-    return np.mean(energies)
+    predictions: shape (batch, num_classes)
+    targets: one-hot shape (batch, num_classes)
+    """
+    # Индексы правильных классов
+    true_indices = np.argmax(targets, axis=1)
+    batch_size = predictions.shape[0]
+    loss = 0.0
+    for i in range(batch_size):
+        true_class = true_indices[i]
+        margin_losses = []
+        for j in range(predictions.shape[1]):
+            if j != true_class:
+                margin = max(0, 1 - predictions[i, true_class] + predictions[i, j])
+                margin_losses.append(margin**2)
+        loss += sum(margin_losses)
+    return loss / batch_size
+

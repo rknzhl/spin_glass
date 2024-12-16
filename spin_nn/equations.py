@@ -1,4 +1,5 @@
 import numpy as np
+from spin_nn.model import MSKModel
 from concurrent.futures import ThreadPoolExecutor
 
 def l2_hinge_loss(predictions, targets):
@@ -23,3 +24,11 @@ def l2_hinge_loss(predictions, targets):
         loss += sum(margin_losses)
     return loss / batch_size
 
+
+def calculate_epoch_energy(model, X_train, beta=1.0):
+    total_energy = 0.0
+    for x in X_train:
+        energy = model.calculate_hamiltonian(x)
+        total_energy += energy
+
+    return total_energy / len(X_train)

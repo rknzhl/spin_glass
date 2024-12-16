@@ -1,6 +1,6 @@
 import numpy as np
 from tqdm import tqdm
-from spin_nn.equations import l2_hinge_loss
+from spin_nn.equations import l2_hinge_loss, calculate_epoch_energy
 from concurrent.futures import ThreadPoolExecutor
 
 def evaluate(model, X_test, y_test):
@@ -64,5 +64,7 @@ def train(model, X_train, y_train, X_test, y_test, epochs=10, batch_size=64, n_j
         # Обновляем веса
         model.update_weights(total_gradients)
 
+        epoch_energy = calculate_epoch_energy(model, X_train_shuffled)
+
         test_accuracy = evaluate(model, X_test, y_test)
-        print(f"Epoch {epoch+1}/{epochs}, Avg Loss: {epoch_loss/len(batches):.4f}, Test Accuracy: {test_accuracy:.2f}%")
+        print(f"Epoch {epoch+1}/{epochs}, Avg Loss: {epoch_loss/len(batches):.4f}, Test Accuracy: {test_accuracy:.2f}%, Avg Energy: {epoch_energy:.4f}")

@@ -30,13 +30,13 @@ class MSKModel:
         h_tanh(x) определена кусочно: -1 если x<-1, x если -1<x<1, 1 если x>1
         Производная этой функции равна 1 в диапазоне (-1,1) и 0 вне его.
         """
-        if (np.abs(x)<1):
-            return x;
-        elif (x < -1):
-            return -1;
-        else:
-            return 1;
-        #return np.where(np.abs(x) < 1, 1.0, 0.0)
+        #if (np.abs(x)<1):
+        #    return x;
+        #elif (x < -1):
+        #    return -1;
+        #else:
+        #    return 1;
+        return np.where(np.abs(x) < 1, 1.0, 0.0)
 
     def forward(self, x):
         """
@@ -107,3 +107,18 @@ class MSKModel:
         for i in range(len(self.weights)):
             self.velocity[i] = self.momentum * self.velocity[i] - self.lr * avg_gradients[i]
             self.weights[i] += self.velocity[i]
+
+    def calculate_hamiltonian(self, spins):
+        energy = 0
+        current_spins = spins
+        for weight in self.weights:
+            # Локальное поле для текущего слоя
+            local_field = np.dot(current_spins, weight)  # Размерность соответствует следующему слою
+
+            # Обновление энергии
+            energy -= 0.5 * np.sum(local_field * current_spins[:local_field.shape[0]])
+
+            # Обновление состояний спинов
+            current_spins = self.step_function(local_field)  # Бинаризация
+            
+        return energy

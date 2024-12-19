@@ -22,10 +22,6 @@ def build_j_matrix(weights_list):
         # Заполняем блоки:
         J[in_start:in_end, out_start:out_end] = W
         J[out_start:out_end, in_start:in_end] = W.T
-        # Отладочная печать:
-        print(f"Вставили блок W^{k+1}: shape={W.shape}, "
-              f"J[{in_start}:{in_end}, {out_start}:{out_end}]")
-
     return J
 
 
@@ -48,18 +44,18 @@ def find_min_eigval(J, beta):
 
 def calc_min_b(weights):
     J = build_j_matrix(weights)
-    answer = 0;
+    answer = 10000000;
     min_eigs = []
     betas = np.linspace(0.6, 1.5, 100)
     for b in betas:
         val = find_min_eigval(J, b)
-        min_eigs.append(val)
-    for val in min_eigs:
-        if val > answer:
-            answer = val
-        if val < 0:
+        min_eigs.append((val, b))
+    for val, b in min_eigs:
+        if val <= 0:
+            answer = b;
             break;
-    return answer
+    print(answer);
+    return answer;
 
 
 

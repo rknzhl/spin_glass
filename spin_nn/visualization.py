@@ -3,6 +3,7 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 from spin_nn.model import MSKModel
+from spin_nn.temp_calc import calc_min_b
 
 def load_metrics(json_path):
     with open(json_path, "r") as f:
@@ -159,3 +160,76 @@ def visualize_spins_from_model(model, test_image, layer_index):
     plt.colorbar(label="Состояние спина")
     plt.title(f"Визуализация спинов для слоя {layer_index} ({num_neurons} спинов)")
     plt.show()
+
+
+
+
+def visualize_Tc(weights_folder):
+    """
+    Строит зависимость температуры Кюри от эпохи
+    и сохраняет изображения в папку `processed_data`.
+    """
+    # Получение базовой директории
+    base_dir = os.path.dirname(weights_folder)
+    folder_name = os.path.basename(weights_folder)
+    
+    # Путь для сохранения обработанных данных
+    processed_data_dir = os.path.join(base_dir, "processed_data", folder_name)
+    os.makedirs(processed_data_dir, exist_ok=True)
+    
+    # Получение списка только JSON-файлов
+    weight_files = sorted(
+    (f for f in os.listdir(weights_folder) if f.startswith("weights_epoch_") and f.endswith(".json")),
+    key=lambda x: int(x.split("_")[-1].split(".")[0]))
+    metrics_file = os.path.join(weights_folder, "metrics.json")
+
+    with open(metrics_file, "r") as f:
+        metrics = json.load(f)
+
+        
+    
+    epochs = []
+    critical_temperatures = []
+
+    for weight_file in weight_files:
+        # Извлечение номера эпохи из названия файла
+        try:
+            epoch = int(weight_file.split("_")[-1].split(".")[0])
+        except ValueError:
+            print(f"Пропуск файла с некорректным названием: {weight_file}")
+            continue
+
+        # Полный путь до файла весов
+        weight_path = os.path.join(weights_folder, weight_file)
+        
+        # Загрузка модели с весами
+        try:
+            model = MSKModel.load_weights(weight_path)
+        except Exception as e:
+            print(f"Ошибка при загрузке модели из файла {weight_path}: {e}")
+            continue
+    
+        
+
+        beta = calc_min_b(model.weights)
+
+        epochs.append(epoch)
+        critical_temperatures.append(1 / beta)  # T_c = 1 / beta
+
+       
+    sorted_indices = np.argsort(epochs)
+    metrics["critical_temperatures"] = list(np.array(critical_temperatures)[sorted_indices])
+
+    with open(metrics_file, "w") as f:
+        json.dump(metrics, f, indent=4)
+
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(np.array(metrics["epochs"]), np.array(metrics["critical_temperatures"]), marker='o', linestyle='None', color='blue', label="$T_c = 1 / \\beta$")
+    plt.xlabel("Эпоха", fontsize=14)
+    plt.ylabel("$T_c$", fontsize=14)
+    plt.title("Зависимость $T_c$ от эпохи", fontsize=16)
+    plt.grid(True)
+    plt.legend(fontsize=12)
+    plt.show()
+

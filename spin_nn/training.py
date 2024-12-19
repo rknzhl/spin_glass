@@ -4,6 +4,7 @@ import datetime
 import numpy as np
 from tqdm import tqdm
 from spin_nn.equations import l2_hinge_loss, calculate_epoch_energy, compute_critical_temperature
+from spin_nn.temp_calc import calc_min_b
 from concurrent.futures import ThreadPoolExecutor
 
 
@@ -86,6 +87,29 @@ def train(model, X_train, y_train, X_test, y_test, save_dir, epochs=10, batch_si
         # Обновляем веса
         model.update_weights(total_gradients)
 
+
+        # #ОТЖИГ
+        # original_energy = calculate_epoch_energy(model, X_train_shuffled)
+        # original_weights = [np.copy(w) for w in model.weights]
+
+        # #Рандомно изменяем веса после градиентного обновления
+        # for i, weight in enumerate(model.weights):
+        #     random_update = np.random.normal(0, 0.001, size=weight.shape)  # Маленькое случайное изменение
+        #     model.weights[i] += random_update
+
+        # new_energy = calculate_epoch_energy(model, X_train_shuffled)
+
+        # if new_energy > original_energy:
+        #     # Применяем критерий Метрополиса
+        #     delta_energy = new_energy - original_energy
+        #     acceptance_probability = np.exp(-delta_energy/curie_temperature)
+        #     print(acceptance_probability)
+        #     if np.random.uniform(0, 1) < acceptance_probability:
+        #         # Откатываем к исходным весам
+        #         model.weights = original_weights
+
+
+
         weights_file = os.path.join(session_dir, f"weights_epoch_{epoch + 1}.json")
         model.save_weights(weights_file)
 
@@ -93,8 +117,9 @@ def train(model, X_train, y_train, X_test, y_test, save_dir, epochs=10, batch_si
 
         test_accuracy = evaluate(model, X_test, y_test)
 
-        curie_temperature = compute_critical_temperature(model.weights)
+        beta = calc_min_b(model.weights)
 
+        curie_temperature = 1/beta
 
         metrics["epochs"].append(epoch + 1)
         metrics["losses"].append(epoch_loss / len(batches))
@@ -106,4 +131,4 @@ def train(model, X_train, y_train, X_test, y_test, save_dir, epochs=10, batch_si
         with open(metrics_file, "w") as f:
             json.dump(metrics, f, indent=4)
 
-        print(f"Epoch {epoch+1}/{epochs}, Avg Loss: {epoch_loss/len(batches):.4f}, Test Accuracy: {test_accuracy:.2f}%, Avg Energy: {epoch_energy:.4f}")
+        print(f"Epoch {epoch+1}/{epochs}, Avg Loss: {epoch_loss/len(batches):.4f}, Test Accuracy: {test_accuracy:.2f}%, Avg Energy: {epoch_energy:.4f}, Curie Temperature: {curie_temperature:.5f}")

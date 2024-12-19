@@ -8,3 +8,8 @@ __pycache__/*
 pycache
 
 spin_nn/__pycache__
+data/
+data/*
+
+__pycache__
+__pycache__/*

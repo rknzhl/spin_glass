@@ -32,3 +32,35 @@ def calculate_epoch_energy(model, X_train, beta=1.0):
         total_energy += energy
 
     return total_energy / len(X_train)
+
+
+def compute_critical_temperature(weights):
+    """
+    Вычисляет критическую температуру (температуру Кюри) для данной модели.
+    """
+    # Определяем размер полной матрицы взаимодействий
+    total_size = sum(w.shape[0] for w in weights) + weights[-1].shape[1]
+    interaction_matrix = np.zeros((total_size, total_size))
+
+    # Заполняем блоки матрицы взаимодействий
+    offset = 0
+    for i, weight in enumerate(weights):
+        rows, cols = weight.shape
+        interaction_matrix[offset:offset+rows, offset:offset+cols] = weight
+        interaction_matrix[offset:offset+cols, offset:offset+rows] = weight.T
+        offset += rows
+
+    # Вычисляем собственные значения
+    eigenvalues = np.linalg.eigvals(interaction_matrix)
+
+    # Находим максимальное собственное значение
+    max_eigenvalue = np.max(np.abs(eigenvalues))
+
+    # Если максимальное собственное значение равно 0, система неустойчива
+    if max_eigenvalue == 0:
+        raise ValueError("Invalid interaction matrix: maximum eigenvalue is zero.")
+
+    # Температура Кюри: обратная пропорция к максимальному собственному значению
+    Tc = 1.0 / max_eigenvalue
+
+    return Tc

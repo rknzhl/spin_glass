@@ -1,7 +1,11 @@
+import os
+import json
+import datetime
 import numpy as np
 from tqdm import tqdm
-from spin_nn.equations import l2_hinge_loss, calculate_epoch_energy
+from spin_nn.equations import l2_hinge_loss, calculate_epoch_energy, compute_critical_temperature
 from concurrent.futures import ThreadPoolExecutor
+
 
 def evaluate(model, X_test, y_test):
     correct = 0
@@ -30,7 +34,25 @@ def train_on_batch(model, X_batch, y_batch):
     return (batch_loss / len(X_batch), batch_gradients)
 
 
-def train(model, X_train, y_train, X_test, y_test, epochs=10, batch_size=64, n_jobs=4):
+def train(model, X_train, y_train, X_test, y_test, save_dir, epochs=10, batch_size=64, n_jobs=4):
+
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    session_dir = os.path.join(save_dir, f"{timestamp}_epochs")
+    os.makedirs(session_dir, exist_ok=True)
+    print(f"Saving weights to: {session_dir}")
+
+    metrics_file = os.path.join(session_dir, "metrics.json")
+
+    metrics = {
+        "epochs": [],
+        "losses": [],
+        "accuracies": [],
+        "energies": [],
+        "curie_temperatures": []
+    }
+
+
+
     n_samples = X_train.shape[0]
 
     for epoch in range(epochs):
@@ -64,7 +86,24 @@ def train(model, X_train, y_train, X_test, y_test, epochs=10, batch_size=64, n_j
         # Обновляем веса
         model.update_weights(total_gradients)
 
+        weights_file = os.path.join(session_dir, f"weights_epoch_{epoch + 1}.json")
+        model.save_weights(weights_file)
+
         epoch_energy = calculate_epoch_energy(model, X_train_shuffled)
 
         test_accuracy = evaluate(model, X_test, y_test)
+
+        curie_temperature = compute_critical_temperature(model.weights)
+
+
+        metrics["epochs"].append(epoch + 1)
+        metrics["losses"].append(epoch_loss / len(batches))
+        metrics["accuracies"].append(test_accuracy)
+        metrics["energies"].append(epoch_energy)
+        metrics["curie_temperatures"].append(curie_temperature)
+
+        # Записываем метрики в файл
+        with open(metrics_file, "w") as f:
+            json.dump(metrics, f, indent=4)
+
         print(f"Epoch {epoch+1}/{epochs}, Avg Loss: {epoch_loss/len(batches):.4f}, Test Accuracy: {test_accuracy:.2f}%, Avg Energy: {epoch_energy:.4f}")

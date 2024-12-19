@@ -1,4 +1,5 @@
 import numpy as np
+import json
 class MSKModel:
     def __init__(self, layer_sizes, lr=0.01, momentum=0.9):
         """
@@ -122,3 +123,28 @@ class MSKModel:
             current_spins = self.step_function(local_field)  # Бинаризация
             
         return energy
+    
+    def save_weights(self, filepath):
+        data = {
+            "layer_sizes": self.layer_sizes,
+            "weights": [w.tolist() for w in self.weights]
+        }
+
+        with open(filepath, "w") as f:
+            json.dump(data, f)
+
+        print(f"Weights and structure saved to {filepath}")
+
+    @classmethod
+    def load_weights(cls, filepath):
+        with open(filepath, "r") as f:
+            data = json.load(f)
+
+        layer_sizes = data["layer_sizes"]
+        model = cls(layer_sizes=layer_sizes)
+
+        # Восстанавливаем веса
+        model.weights = [np.array(w) for w in data["weights"]]
+        print(f"Weights and structure loaded from {filepath}")
+
+        return model

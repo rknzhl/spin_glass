@@ -59,6 +59,7 @@ class MSKModel:
         # Последний слой - линейный выход
         z = np.dot(activations[-1], self.weights[-1]) # доактивация выходного слоя (линейная)
         pre_activations.append(z)
+        output = self.step_function(z) ## ДЕЛАЕМ БИНАРИЗАЦИЮ
         activations.append(z)
 
         return activations[-1], activations, pre_activations

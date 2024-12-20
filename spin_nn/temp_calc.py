@@ -51,7 +51,7 @@ def calc_min_b(weights):
     J = build_j_matrix(weights)
     answer = 10000000;
     min_eigs = []
-    betas = np.linspace(0.75, 1.3, 250)
+    betas = np.linspace(0.5, 1.35, 450)
     for b in betas:
         val = find_min_eigval(J, b)
         min_eigs.append((val, b))
@@ -62,7 +62,7 @@ def calc_min_b(weights):
             return answer;
 
     closest_val, closest_b = min(min_eigs, key=lambda x: abs(x[0]))
-    print("НУЛЯ НЕТ, МИНИМУМ В:",closest_b, "   CО ЗНАЧЕНИЕМ",closest_val )
+    print("НУЛЯ НЕТ, МИНИМУМ В:",closest_b, "   CО ЗНАЧЕНИЕМ",closest_val)
     return closest_b
 
 

@@ -127,6 +127,7 @@ def train(model, X_train, y_train, X_test, y_test, save_dir, epochs=10, batch_si
         metrics["energies"].append(epoch_energy)
         metrics["curie_temperatures"].append(curie_temperature)
 
+
         # Записываем метрики в файл
         with open(metrics_file, "w") as f:
             json.dump(metrics, f, indent=4)

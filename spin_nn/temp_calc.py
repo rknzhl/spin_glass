@@ -1,4 +1,6 @@
 from spin_nn.model import MSKModel
+from scipy.sparse.linalg import eigsh
+from scipy.sparse import csr_matrix
 import numpy as np
 
 def build_j_matrix(weights_list):
@@ -39,23 +41,29 @@ def find_min_eigval(J, beta):
     N = J.shape[0]
     M = build_M_matrix(J, beta)
     A = np.eye(N) - M  # I_N - M
-    eigvals = np.linalg.eigvalsh(A)  # для симметричной матрицы
-    return np.min(eigvals)
+    #eigvals = np.linalg.eigvalsh(A)  # для симметричной матрицы
+    A_sparse = csr_matrix(A)
+    # Находим минимальное собственное значение с помощью eigsh
+    vals, _ = eigsh(A_sparse, k=1, which='SM')
+    return vals[0]
 
 def calc_min_b(weights):
     J = build_j_matrix(weights)
     answer = 10000000;
     min_eigs = []
-    betas = np.linspace(0.6, 1.5, 100)
+    betas = np.linspace(0.75, 1.3, 250)
     for b in betas:
         val = find_min_eigval(J, b)
         min_eigs.append((val, b))
     for val, b in min_eigs:
         if val <= 0:
             answer = b;
-            break;
-    print(answer);
-    return answer;
+            print("ПЕРЕСЕЧЕНИЕ С НУЛЕМ В:",answer)
+            return answer;
+
+    closest_val, closest_b = min(min_eigs, key=lambda x: abs(x[0]))
+    print("НУЛЯ НЕТ, МИНИМУМ В:",closest_b, "   CО ЗНАЧЕНИЕМ",closest_val )
+    return closest_b
 
 
 

@@ -51,7 +51,7 @@ def calc_min_b(weights):
     J = build_j_matrix(weights)
     answer = 10000000;
     min_eigs = []
-    betas = np.linspace(0.5, 1.35, 450)
+    betas = np.linspace(0.5, 1.45, 450)
     for b in betas:
         val = find_min_eigval(J, b)
         min_eigs.append((val, b))

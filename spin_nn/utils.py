@@ -15,6 +15,10 @@ def load_mnist():
     X[X == 0] = -1
     y[y == 0] = -1
 
+    X[X > 0] = 1
+    y[y > 0] = 1
+
+
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     if isinstance(X_train, pd.DataFrame):
         X_train = X_train.to_numpy()

@@ -60,7 +60,7 @@ class MSKModel:
         z = np.dot(activations[-1], self.weights[-1]) # доактивация выходного слоя (линейная)
         pre_activations.append(z)
         output = self.step_function(z) ## ДЕЛАЕМ БИНАРИЗАЦИЮ
-        activations.append(z)
+        activations.append(output) ##ДОП БИНАРИЗАЦИЯ
 
         return activations[-1], activations, pre_activations
 
@@ -79,27 +79,19 @@ class MSKModel:
         gradients = [np.zeros_like(w) for w in self.weights]
 
         # Ошибка на выходном слое
-        delta = (output - y_true)  # (num_classes,)
+        delta = (output - y_true)  # Ошибка на выходе (num_classes,)
+
+        # Применяем STE для последнего слоя
+        delta = delta * self.h_tanh_grad(pre_activations[-1])
 
         # Градиент для последнего слоя
-        # activations[-2] - это активации последнего скрытого слоя
         gradients[-1] = np.outer(activations[-2], delta)
 
         # Обратный проход по скрытым слоям
-        # pre_activations[-1] соответствует выходному слою, последний скрытый слой - pre_activations[-2]
-        # Нам нужно пройти по слоям с конца к началу, пропуская выходной, для него уже сделан grad
         for i in range(len(self.weights) - 2, -1, -1):
             # delta для текущего слоя
-            # Применяем веса следующего слоя
-            delta = np.dot(delta, self.weights[i+1].T)
-
-            # Если это не последний слой (который линейный), то применяем h_tanh_grad
-            # Последний слой в pre_activations - это выходной (линейный),
-            # поэтому для всех кроме последнего слоя:
-            if i < len(self.weights)-1: 
-                # Применяем STE производную
-                delta = delta * self.h_tanh_grad(pre_activations[i])
-
+            delta = np.dot(delta, self.weights[i + 1].T) * self.h_tanh_grad(pre_activations[i])
+            
             # Градиент для текущего слоя
             gradients[i] = np.outer(activations[i], delta)
 

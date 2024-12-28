@@ -2,6 +2,7 @@ import os
 import json
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
 from spin_nn.model import MSKModel
 from spin_nn.temp_calc import calc_min_b
 
@@ -17,53 +18,64 @@ def plot_metrics(metrics):
     energies = metrics["energies"]
     curie_temperatures = metrics["curie_temperatures"]
 
-    # График 1: Потери (Loss)
-    plt.figure(figsize=(8, 6))
-    plt.plot(epochs, losses, marker='o', linestyle='-', color='blue')
-    plt.title("Loss over Epochs")
-    plt.xlabel("Epochs")
-    plt.ylabel("Loss")
-    plt.grid()
+   # График 1: Потери
+    plt.figure(figsize=(10, 6))
+    plt.plot(epochs, losses, marker='o', linestyle='-', color='blue', linewidth=2, markersize=6)
+    plt.title("Изменение функции потерь от эпох", fontsize=16, pad=15)
+    plt.xlabel("Эпохи", fontsize=14, labelpad=10)
+    plt.ylabel("Loss", fontsize=14, labelpad=10)
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
     plt.show()
 
-    # График 2: Точность (Accuracy)
-    plt.figure(figsize=(8, 6))
-    plt.plot(epochs, accuracies, marker='o', linestyle='-', color='green')
-    plt.title("Accuracy over Epochs")
-    plt.xlabel("Epochs")
-    plt.ylabel("Accuracy (%)")
-    plt.grid()
+    # График 2: Точность
+    plt.figure(figsize=(10, 6))
+    plt.plot(epochs, accuracies, marker='o', linestyle='-', color='green', linewidth=2, markersize=6)
+    plt.title("Изменение точности от эпох", fontsize=16, pad=15)
+    plt.xlabel("Эпохи", fontsize=14, labelpad=10)
+    plt.ylabel("Точность (%)", fontsize=14, labelpad=10)
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
     plt.show()
 
-    # График 3: Энергия (Energy)
-    plt.figure(figsize=(8, 6))
-    plt.plot(epochs, energies, marker='o', linestyle='-', color='red')
-    plt.title("Energy over Epochs")
-    plt.xlabel("Epochs")
-    plt.ylabel("Energy")
-    plt.grid()
+    # График 3: Энергия
+    plt.figure(figsize=(10, 6))
+    plt.plot(epochs, energies, marker='o', linestyle='-', color='red', linewidth=2, markersize=6)
+    plt.title("Изменение энергии системы от эпох", fontsize=16, pad=15)
+    plt.xlabel("Эпохи", fontsize=14, labelpad=10)
+    plt.ylabel("Энергия", fontsize=14, labelpad=10)
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
     plt.show()
 
-    # График 4: Температура Кюри (Curie Temperature)
-    plt.figure(figsize=(8, 6))
-    plt.plot(epochs, curie_temperatures, marker='o', linestyle='-', color='purple')
-    plt.title("Curie Temperature over Epochs")
-    plt.xlabel("Epochs")
-    plt.ylabel("Curie Temperature")
-    plt.grid()
-    plt.show()
 
-    # График 5: Сравнение Loss и Energy
-    plt.figure(figsize=(8, 6))
-    plt.plot(epochs, losses, marker='o', linestyle='-', label="Loss", color='blue')
-    plt.plot(epochs, energies, marker='x', linestyle='--', label="Energy", color='red')
-    plt.title("Loss and Energy over Epochs")
-    plt.xlabel("Epochs")
-    plt.ylabel("Value")
-    plt.legend()
-    plt.grid()
 
+
+    def power_law_with_offset(x, a, alpha, c):
+        return a + c * x ** alpha
+    
+    initial_guess = [1.0, 0.3, 1.0]
+
+    # Аппроксимация
+    params, _ = curve_fit(power_law_with_offset, epochs, curie_temperatures, p0=initial_guess, maxfev=5000)
+    a, alpha, c = params
+    fitted_temperatures = power_law_with_offset(epochs[5:], a, alpha, c)
+
+    # График 4: Температура Кюри
+    plt.figure(figsize=(10, 6))
+    plt.plot(epochs, curie_temperatures, marker='o', linestyle='-', color='purple', linewidth=2, markersize=6)
+    #plt.plot(epochs[5:], fitted_temperatures, '--', color='orange', label=f"Аппроксимация: $t^{{{alpha:.3f}}}$")
+    plt.title("$T_c$ от эпох", fontsize=16, pad=15)
+    plt.xlabel("Эпохи", fontsize=14, labelpad=10)
+    plt.ylabel("$T_{c}$", fontsize=14, labelpad=10)
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
     plt.show()
+    print(a, alpha, c)
 
 
 
@@ -156,9 +168,10 @@ def visualize_spins_from_model(model, test_image, layer_index):
     
     # Визуализация спинов
     plt.figure(figsize=(6, 6))
-    plt.imshow(spin_grid, cmap='seismic', interpolation='nearest', vmin=-1, vmax=1)
-    plt.colorbar(label="Состояние спина")
-    plt.title(f"Визуализация спинов для слоя {layer_index} ({num_neurons} спинов)")
+    plt.imshow(spin_grid, cmap='coolwarm', interpolation='nearest', vmin=-1, vmax=1)
+    plt.title(f"Визуализация спинов для слоя {layer_index} ({num_neurons} спинов)", fontsize=14, pad=15)
+    plt.axis('off') 
+    plt.tight_layout() 
     plt.show()
 
 

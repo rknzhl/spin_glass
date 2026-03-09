@@ -24,16 +24,18 @@ This project investigates energy landscapes and phase transitions in neural netw
 
 ```
 spin_glass/
-├── spin_nn/                    # Main implementation
-│   ├── model.py               # MSK model
-│   ├── equations.py           # TAP equations & statistical physics
-│   ├── training.py            # Training with STE
-│   ├── annealing.py           # Simulated annealing
-│   ├── temp_calc.py           # Critical temperature
-│   ├── visualization.py       # Visualization tools
-│   └── utils.py               # Utilities
-├── notebooks/                 # Jupyter notebooks with experiments
+├── code/
+│   ├── spin_nn/               # Main implementation
+│   │   ├── model.py           # MSK model
+│   │   ├── equations.py       # TAP equations & statistical physics
+│   │   ├── training.py        # Training with STE
+│   │   ├── annealing.py       # Simulated annealing
+│   │   ├── temp_calc.py       # Critical temperature
+│   │   ├── visualization.py   # Visualization tools
+│   │   └── utils.py           # Utilities
+│   └── notebooks/             # Jupyter notebooks with experiments
 ├── docs/                      # Documentation
+├── README.md
 └── requirements.txt
 ```
 
@@ -48,12 +50,12 @@ pip install -r requirements.txt
 ## Usage
 
 ### Model & Training
-See `notebooks/training_MNIST.ipynb` for full training pipeline.
+See `code/notebooks/training_MNIST.ipynb` for full training pipeline.
 
 ### Analysis
-- `notebooks/tap_temp.ipynb` — TAP equations and critical temperature analysis
-- `notebooks/results_MNIST.ipynb` — Results and visualization
-- `notebooks/annealing.ipynb` — Simulated annealing demonstrations
+- `code/notebooks/tap_temp.ipynb` — TAP equations and critical temperature analysis
+- `code/notebooks/results_MNIST.ipynb` — Results and visualization
+- `code/notebooks/annealing.ipynb` — Simulated annealing demonstrations
 
 ## Documentation
 

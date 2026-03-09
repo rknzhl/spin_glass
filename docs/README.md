@@ -15,4 +15,4 @@
 
 ---
 
-For implementation details, see the main README and Jupyter notebooks.
+For implementation details, see the main README and Jupyter notebooks in `code/notebooks/`.

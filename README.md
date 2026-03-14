@@ -18,7 +18,6 @@ This project investigates energy landscapes and phase transitions in neural netw
 - Implemented efficient discrete optimization using STE approximation
 - Validated theoretical predictions through Monte Carlo simulations on MNIST
 
-**Award**: 67th All-Russian MIPT Scientific Conference
 
 ## Project Structure
 

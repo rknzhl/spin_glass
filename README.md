@@ -1,63 +1,11 @@
-# Spin Glasses & Neural Networks: Multilayer Sherrington–Kirkpatrick Model
+# Spin Glasses & Neural Networks
 
-A computational study applying statistical physics to neural network loss surfaces through spin glass theory.
+We study how training changes the energy landscape and critical temperature of a multilayer Sherrington–Kirkpatrick spin system associated with a neural network. Neurons map to Ising spins; weights map to couplings.
 
-## Overview
+- **Model:** MNIST classifier with binary activations and continuous weights.
+- **Training:** momentum gradient descent with a straight-through estimator.
+- **Analysis:** energy evolution and critical-temperature estimation using linearized TAP equations.
 
-This project investigates energy landscapes and phase transitions in neural networks using the multilayer Sherrington–Kirkpatrick (MSK) model. We employ:
+[Presentation](docs/PRESENTATION.pdf) · [Experiments](code/notebooks) · [Implementation](code/spin_nn)
 
-- **Replica method** for analytical characterization of disordered systems
-- **Thouless–Anderson–Palmer (TAP) equations** to analyze metastable states and phase transitions
-- **Monte Carlo simulated annealing** for spin system optimization
-- **Momentum-SGD with Straight-Through Estimator (STE)** for discrete weight optimization
-
-## Key Results
-
-- Applied replica symmetry breaking to characterize neural network loss surfaces
-- Solved TAP equations numerically for metastable state analysis
-- Implemented efficient discrete optimization using STE approximation
-- Validated theoretical predictions through Monte Carlo simulations on MNIST
-
-
-## Project Structure
-
-```
-spin_glass/
-├── code/
-│   ├── spin_nn/               # Main implementation
-│   │   ├── model.py           # MSK model
-│   │   ├── equations.py       # TAP equations & statistical physics
-│   │   ├── training.py        # Training with STE
-│   │   ├── annealing.py       # Simulated annealing
-│   │   ├── temp_calc.py       # Critical temperature
-│   │   ├── visualization.py   # Visualization tools
-│   │   └── utils.py           # Utilities
-│   └── notebooks/             # Jupyter notebooks with experiments
-├── docs/                      # Documentation
-├── README.md
-└── requirements.txt
-```
-
-## Installation
-
-```bash
-git clone https://github.com/rknzhl/spin_glass.git
-cd spin_glass
-pip install -r requirements.txt
-```
-
-## Usage
-
-### Model & Training
-See `code/notebooks/training_MNIST.ipynb` for full training pipeline.
-
-### Analysis
-- `code/notebooks/tap_temp.ipynb` — TAP equations and critical temperature analysis
-- `code/notebooks/results_MNIST.ipynb` — Results and visualization
-- `code/notebooks/annealing.ipynb` — Simulated annealing demonstrations
-
-## Documentation
-
-**Main document**: `docs/PRESENTATION.pdf` — Complete technical presentation with theoretical framework, methodology, and experimental results.
-
-For detailed information about documentation files, see `docs/README.md`
+Rodion Akinzhala & Ksenia Ibragimova
